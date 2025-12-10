@@ -14,7 +14,7 @@
 
 ```bash
 # 1. Clone repository
-git clone https://github.com/YOUR_USERNAME/pg-restore.git
+git clone https://github.com/refatriana31/pg-restore.git
 cd pg-restore
 
 # 2. Setup environment
