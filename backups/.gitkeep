@@ -1,0 +1,2 @@
+# Place backup files here (*.sql.gz, *.dump)
+# This folder is mounted read-only to /backups in container

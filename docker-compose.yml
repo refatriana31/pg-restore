@@ -1,0 +1,71 @@
+# =============================================================================
+# PostgreSQL Restore Environment - Docker Compose
+# Purpose: Lightweight PostgreSQL for database restoration
+# Maintainability: All config via .env, easy version upgrades
+# =============================================================================
+
+services:
+  postgres:
+    # Pin version in one place for easy upgrades
+    image: postgres:${PG_VERSION:-15}-alpine
+    container_name: pg_restore
+    
+    # Restart policy for development
+    restart: unless-stopped
+    
+    # Environment from .env file
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?error: POSTGRES_PASSWORD required}
+      POSTGRES_DB: ${POSTGRES_DB:-restore_db}
+      # Tuning for restore performance (optional)
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+    
+    # Port mapping (configurable)
+    ports:
+      - "${PG_PORT:-5432}:5432"
+    
+    # Volume mounts
+    volumes:
+      # Persistent data
+      - pgdata:/var/lib/postgresql/data
+      # Backup files (read-only for safety)
+      - ./backups:/backups:ro
+      # Init scripts (executed on first run only)
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+    
+    # Health check
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-restore_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    
+    # Resource limits (for local dev, adjust in .env)
+    # Note: deploy.resources only works with Docker Swarm/Compose v3
+    # For standalone docker-compose, use mem_limit and cpus directly
+    mem_limit: ${PG_MEMORY_LIMIT:-512m}
+    cpus: ${PG_CPU_LIMIT:-1.0}
+    
+    # Shared memory size (for PostgreSQL operations)
+    shm_size: 128mb
+    
+    # =========================================================================
+    # OPTIONAL: Uncomment for ephemeral dev (no persistent data)
+    # =========================================================================
+    # tmpfs:
+    #   - /var/lib/postgresql/data:size=256m
+
+volumes:
+  pgdata:
+    name: pg_restore_data
+
+# =============================================================================
+# PRODUCTION MIGRATION NOTES:
+# - Remove mem_limit/cpus, use orchestrator resource management
+# - Use managed database service (RDS, Cloud SQL, etc.)
+# - Enable SSL: POSTGRES_SSL=on
+# - Use secrets management for passwords
+# - Add backup/WAL archiving configuration
+# =============================================================================
