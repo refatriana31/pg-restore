@@ -1,16 +1,25 @@
 # PostgreSQL Restore Environment
 
-Lightweight Docker-based PostgreSQL for database restoration and local development.
+🐳 Lightweight Docker-based PostgreSQL for database restoration and local development.
+
+## Features
+
+- ✅ Docker Compose setup with configurable resources
+- ✅ Environment-based configuration (`.env`)
+- ✅ Optimized restore settings for fast import
+- ✅ Comprehensive restore guide with best practices
+- ✅ SQL scripts for monitoring restore progress
 
 ## Quick Start
 
 ```bash
-# 1. Check port availability
-lsof -i :5432 || echo "Port available"
+# 1. Clone repository
+git clone https://github.com/YOUR_USERNAME/pg-restore.git
+cd pg-restore
 
 # 2. Setup environment
 cp .env.example .env
-# Edit .env: set POSTGRES_PASSWORD and adjust PG_PORT if needed
+# Edit .env and set POSTGRES_PASSWORD
 
 # 3. Place backup file
 cp /path/to/backup.sql.gz ./backups/
@@ -18,41 +27,51 @@ cp /path/to/backup.sql.gz ./backups/
 # 4. Start container
 docker-compose up -d
 
-# 5. Wait for healthy status
-docker-compose ps  # Should show "healthy"
+# 5. Restore database
+gunzip -c ./backups/backup.sql.gz | docker exec -i pg_restore psql -U postgres -d restore_db
 ```
 
-## Restore Commands
+## Configuration
 
-### For `.sql.gz` (compressed SQL):
-```bash
-gunzip -c ./backups/backupncc_2025_08_05T16_51_15.sql.gz | docker exec -i pg_restore psql -U postgres -d ncc
+All settings are in `.env`:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `POSTGRES_USER` | `postgres` | Database user |
+| `POSTGRES_PASSWORD` | - | **Required** |
+| `POSTGRES_DB` | `restore_db` | Database name |
+| `PG_VERSION` | `15` | PostgreSQL version (15, 16, 17) |
+| `PG_PORT` | `5432` | Host port (change if conflict) |
+| `PG_MEMORY_LIMIT` | `512m` | Container memory limit |
+| `PG_CPU_LIMIT` | `1.0` | Container CPU limit |
+
+## Documentation
+
+- [RESTORE_GUIDE.md](./RESTORE_GUIDE.md) - Complete restore instructions with best practices
+- [db/check_restore_progress.sql](./db/check_restore_progress.sql) - SQL queries for monitoring
+
+## Project Structure
+
+```
+pg-restore/
+├── backups/                    # Place backup files here (gitignored)
+├── db/
+│   ├── init/                   # Init scripts (run on first start)
+│   └── check_restore_progress.sql
+├── docker-compose.yml
+├── .env.example                # Template (copy to .env)
+├── .gitignore
+├── README.md
+└── RESTORE_GUIDE.md
 ```
 
-### For `.dump` (custom format, parallel restore):
-```bash
-docker exec -i pg_restore pg_restore -U postgres -d ncc -j 4 --verbose < ./backups/backup.dump
-```
+## Connection
 
-## Post-Restore Checklist
+| Client | Connection String |
+|--------|-------------------|
+| psql | `psql -h localhost -p 5432 -U postgres -d restore_db` |
+| URL | `postgresql://postgres:PASSWORD@localhost:5432/restore_db` |
 
-```bash
-# Analyze statistics
-docker exec pg_restore psql -U postgres -d ncc -c "ANALYZE VERBOSE;"
+## License
 
-# Check database size
-docker exec pg_restore psql -U postgres -d ncc -c "SELECT pg_size_pretty(pg_database_size('ncc'));"
-```
-
-## Reset Environment
-
-```bash
-docker-compose down -v  # Removes container AND data volume
-```
-
-## Maintenance Notes
-
-- **Version upgrades**: Change `PG_VERSION` in `.env` (15→16→17)
-- **Extensions**: Add to `db/init/01-create-app-user.sql`
-- **Security**: Never commit `.env` with real passwords
-- **Production**: Use managed database, enable SSL, configure WAL archiving
+MIT
