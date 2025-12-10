@@ -1,0 +1,9 @@
+# Environment files (contains secrets)
+.env
+
+# PostgreSQL data (if not using Docker volume)
+pgdata/
+
+# Backup files (ignore all, keep folder structure)
+backups/**
+!backups/.gitkeep
