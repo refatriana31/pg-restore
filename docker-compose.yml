@@ -16,7 +16,7 @@ services:
     # Environment from .env file
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?error: POSTGRES_PASSWORD required}
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?error POSTGRES_PASSWORD required}"
       POSTGRES_DB: ${POSTGRES_DB:-restore_db}
       # Tuning for restore performance (optional)
       POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
