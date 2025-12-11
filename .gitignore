@@ -7,3 +7,6 @@ pgdata/
 # Backup files (ignore all, keep folder structure)
 backups/**
 !backups/.gitkeep
+
+# macOS system files
+.DS_Store
