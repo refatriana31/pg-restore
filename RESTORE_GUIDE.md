@@ -44,18 +44,21 @@ docker exec pg_restore psql -U ncc_admin -d postgres -c "CREATE DATABASE nama_db
 
 # Restore ke database baru
 gunzip -c ./backups/backup.sql.gz | docker exec -i pg_restore psql -U ncc_admin -d nama_db_baru
+
+# Restore dengan progress
+pv ./backups/backup.sql.gz | gunzip -c | docker exec -i pg_restore psql -U ncc_admin -d nama_db_baru
 ```
 
 ### 3. Optimasi Sebelum Restore (Rekomendasi untuk file besar)
 
 ```bash
 # Apply tuning untuk restore cepat
-docker exec pg_restore psql -U ncc_admin -d ncc-local -c "ALTER SYSTEM SET maintenance_work_mem = '256MB';"
-docker exec pg_restore psql -U ncc_admin -d ncc-local -c "ALTER SYSTEM SET synchronous_commit = off;"
-docker exec pg_restore psql -U ncc_admin -d ncc-local -c "ALTER SYSTEM SET autovacuum = off;"
-docker exec pg_restore psql -U ncc_admin -d ncc-local -c "ALTER SYSTEM SET fsync = off;"
-docker exec pg_restore psql -U ncc_admin -d ncc-local -c "ALTER SYSTEM SET full_page_writes = off;"
-docker exec pg_restore psql -U ncc_admin -d ncc-local -c "SELECT pg_reload_conf();"
+docker exec pg_restore psql -U ncc_admin -d nama_db_baru -c "ALTER SYSTEM SET maintenance_work_mem = '256MB';"
+docker exec pg_restore psql -U ncc_admin -d nama_db_baru -c "ALTER SYSTEM SET synchronous_commit = off;"
+docker exec pg_restore psql -U ncc_admin -d nama_db_baru -c "ALTER SYSTEM SET autovacuum = off;"
+docker exec pg_restore psql -U ncc_admin -d nama_db_baru -c "ALTER SYSTEM SET fsync = off;"
+docker exec pg_restore psql -U ncc_admin -d nama_db_baru -c "ALTER SYSTEM SET full_page_writes = off;"
+docker exec pg_restore psql -U ncc_admin -d nama_db_baru -c "SELECT pg_reload_conf();"
 ```
 
 ### 4. Jalankan Restore
