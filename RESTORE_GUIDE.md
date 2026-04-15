@@ -14,7 +14,7 @@ cp /path/to/your/backup.sql.gz ./backups/
 docker-compose up -d
 
 # 3. Restore (ganti nama file sesuai kebutuhan)
-gunzip -c ./backups/your_backup.sql.gz | docker exec -i pg_restore psql -U ncc_admin -d ncc-local
+gunzip -c ./backups/your_backup.sql.gz | docker exec -i pg_restore psql -U admin -d local-db
 ```
 
 ---
@@ -31,66 +31,66 @@ docker-compose ps
 docker-compose up -d
 
 # Tunggu sampai healthy
-docker exec pg_restore pg_isready -U ncc_admin
+docker exec pg_restore pg_isready -U admin
 ```
 
 ### 2. Buat Database Baru (Opsional)
 
-Jika ingin restore ke database baru (bukan `ncc-local`):
+Jika ingin restore ke database baru (bukan `local-db`):
 
 ```bash
 # Buat database baru
-docker exec pg_restore psql -U ncc_admin -d postgres -c "CREATE DATABASE nama_db_baru;"
+docker exec pg_restore psql -U admin -d postgres -c "CREATE DATABASE nama_db_baru;"
 
 # Restore ke database baru
-gunzip -c ./backups/backup.sql.gz | docker exec -i pg_restore psql -U ncc_admin -d nama_db_baru
+gunzip -c ./backups/backup.sql.gz | docker exec -i pg_restore psql -U admin -d nama_db_baru
 
 # Restore dengan progress
-pv ./backups/backup.sql.gz | gunzip -c | docker exec -i pg_restore psql -U ncc_admin -d nama_db_baru
+pv ./backups/backup.sql.gz | gunzip -c | docker exec -i pg_restore psql -U admin -d nama_db_baru
 ```
 
 ### 3. Optimasi Sebelum Restore (Rekomendasi untuk file besar)
 
 ```bash
 # Apply tuning untuk restore cepat
-docker exec pg_restore psql -U ncc_admin -d nama_db_baru -c "ALTER SYSTEM SET maintenance_work_mem = '256MB';"
-docker exec pg_restore psql -U ncc_admin -d nama_db_baru -c "ALTER SYSTEM SET synchronous_commit = off;"
-docker exec pg_restore psql -U ncc_admin -d nama_db_baru -c "ALTER SYSTEM SET autovacuum = off;"
-docker exec pg_restore psql -U ncc_admin -d nama_db_baru -c "ALTER SYSTEM SET fsync = off;"
-docker exec pg_restore psql -U ncc_admin -d nama_db_baru -c "ALTER SYSTEM SET full_page_writes = off;"
-docker exec pg_restore psql -U ncc_admin -d nama_db_baru -c "SELECT pg_reload_conf();"
+docker exec pg_restore psql -U admin -d nama_db_baru -c "ALTER SYSTEM SET maintenance_work_mem = '256MB';"
+docker exec pg_restore psql -U admin -d nama_db_baru -c "ALTER SYSTEM SET synchronous_commit = off;"
+docker exec pg_restore psql -U admin -d nama_db_baru -c "ALTER SYSTEM SET autovacuum = off;"
+docker exec pg_restore psql -U admin -d nama_db_baru -c "ALTER SYSTEM SET fsync = off;"
+docker exec pg_restore psql -U admin -d nama_db_baru -c "ALTER SYSTEM SET full_page_writes = off;"
+docker exec pg_restore psql -U admin -d nama_db_baru -c "SELECT pg_reload_conf();"
 ```
 
 ### 4. Jalankan Restore
 
 #### Format `.sql.gz` (compressed SQL):
 ```bash
-gunzip -c ./backups/backup.sql.gz | docker exec -i pg_restore psql -U ncc_admin -d ncc-local
+gunzip -c ./backups/backup.sql.gz | docker exec -i pg_restore psql -U admin -d local-db
 ```
 
 #### Format `.dump` (custom format, parallel restore):
 ```bash
-docker exec -i pg_restore pg_restore -U ncc_admin -d ncc-local -j 4 --verbose < ./backups/backup.dump
+docker exec -i pg_restore pg_restore -U admin -d local-db -j 4 --verbose < ./backups/backup.dump
 ```
 
 ### 5. Reset Settings Setelah Restore
 
 ```bash
-docker exec pg_restore psql -U ncc_admin -d ncc-local -c "ALTER SYSTEM RESET ALL;"
-docker exec pg_restore psql -U ncc_admin -d ncc-local -c "SELECT pg_reload_conf();"
+docker exec pg_restore psql -U admin -d local-db -c "ALTER SYSTEM RESET ALL;"
+docker exec pg_restore psql -U admin -d local-db -c "SELECT pg_reload_conf();"
 ```
 
 ### 6. Post-Restore Optimization
 
 ```bash
 # Analyze untuk update statistics
-docker exec pg_restore psql -U ncc_admin -d ncc-local -c "ANALYZE VERBOSE;"
+docker exec pg_restore psql -U admin -d local-db -c "ANALYZE VERBOSE;"
 
 # Cek ukuran database
-docker exec pg_restore psql -U ncc_admin -d ncc-local -c "SELECT pg_size_pretty(pg_database_size('ncc-local'));"
+docker exec pg_restore psql -U admin -d local-db -c "SELECT pg_size_pretty(pg_database_size('local-db'));"
 
 # Cek jumlah tabel
-docker exec pg_restore psql -U ncc_admin -d ncc-local -c "SELECT COUNT(*) FROM pg_tables WHERE schemaname = 'public';"
+docker exec pg_restore psql -U admin -d local-db -c "SELECT COUNT(*) FROM pg_tables WHERE schemaname = 'public';"
 ```
 
 ---
@@ -107,7 +107,7 @@ docker-compose down -v
 docker-compose up -d
 
 # Restore lagi
-gunzip -c ./backups/backup.sql.gz | docker exec -i pg_restore psql -U ncc_admin -d ncc-local
+gunzip -c ./backups/backup.sql.gz | docker exec -i pg_restore psql -U admin -d local-db
 ```
 
 ---
@@ -119,10 +119,10 @@ Jalankan di DBeaver atau psql untuk monitor progress:
 ```sql
 -- Cek aktivitas restore
 SELECT pid, state, NOW() - query_start AS duration, LEFT(query, 60) AS query
-FROM pg_stat_activity WHERE datname = 'ncc-local' AND state != 'idle';
+FROM pg_stat_activity WHERE datname = 'local-db' AND state != 'idle';
 
 -- Cek ukuran database (refresh berkala)
-SELECT pg_size_pretty(pg_database_size('ncc-local')) AS size;
+SELECT pg_size_pretty(pg_database_size('local-db')) AS size;
 
 -- Cek jumlah tabel
 SELECT COUNT(*) AS tables FROM pg_tables WHERE schemaname = 'public';
@@ -134,9 +134,9 @@ SELECT COUNT(*) AS tables FROM pg_tables WHERE schemaname = 'public';
 
 | Client | Connection String |
 |--------|-------------------|
-| **psql** | `psql -h localhost -p 15432 -U ncc_admin -d ncc-local` |
-| **DBeaver** | Host: `localhost`, Port: `15432`, User: `ncc_admin`, DB: `ncc-local` |
-| **Application** | `postgresql://ncc_admin:PASSWORD@localhost:15432/ncc-local` |
+| **psql** | `psql -h localhost -p 15432 -U admin -d local-db` |
+| **DBeaver** | Host: `localhost`, Port: `15432`, User: `admin`, DB: `local-db` |
+| **Application** | `postgresql://admin:PASSWORD@localhost:15432/local-db` |
 
 ---
 

@@ -13,7 +13,7 @@ SELECT
     NOW() - query_start AS duration,
     LEFT(query, 80) AS query_preview
 FROM pg_stat_activity 
-WHERE datname = 'ncc-local'
+WHERE datname = 'local-db'
   AND state != 'idle'
 ORDER BY query_start;
 
@@ -22,7 +22,7 @@ SELECT
     datname AS database_name,
     pg_size_pretty(pg_database_size(datname)) AS size
 FROM pg_database 
-WHERE datname = 'ncc-local';
+WHERE datname = 'local-db';
 
 -- 3. CEK UKURAN SEMUA TABEL (jalankan setelah restore selesai)
 SELECT 
@@ -50,4 +50,4 @@ SELECT
 FROM pg_stat_activity blocked
 JOIN pg_stat_activity blocking 
     ON blocking.pid = ANY(pg_blocking_pids(blocked.pid))
-WHERE blocked.datname = 'ncc-local';
+WHERE blocked.datname = 'local-db';
